@@ -1,17 +1,29 @@
 package com.example.turbodriver
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.text.TextUtils
+import android.view.LayoutInflater
+import android.view.View
+import android.widget.Button
 
 import android.widget.Toast
+import com.example.turbodriver.Model.DriverInfoModel
 import com.firebase.ui.auth.AuthMethodPickerLayout
 import com.firebase.ui.auth.AuthUI
 import com.firebase.ui.auth.IdpResponse
+import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.*
+import com.google.firebase.database.ktx.database
+import com.google.firebase.ktx.Firebase
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Completable
+import kotlinx.android.synthetic.main.activity_splash_screen.*
+import kotlinx.android.synthetic.main.layout_register.*
 import java.util.*
 import java.util.concurrent.TimeUnit
 
@@ -25,6 +37,9 @@ class SplashScreenActivity : AppCompatActivity() {
     private lateinit var provider: List<AuthUI.IdpConfig>
     private lateinit var firebaseAuth: FirebaseAuth
     private lateinit var listener: FirebaseAuth.AuthStateListener
+
+    private lateinit var database: FirebaseDatabase
+    private lateinit var driverInfoRef: DatabaseReference
 
     override fun onStart() {
         super.onStart()
@@ -43,8 +58,10 @@ class SplashScreenActivity : AppCompatActivity() {
             }
     }
 
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_splash_screen)
 
         init()
 
@@ -52,6 +69,8 @@ class SplashScreenActivity : AppCompatActivity() {
 
 
     private fun init() {
+        database = FirebaseDatabase.getInstance()
+        driverInfoRef = database.getReference(Common.DRIVER_INFO_REFERNCE)
 
         provider = Arrays.asList(
             AuthUI.IdpConfig.PhoneBuilder().build(),
@@ -62,11 +81,106 @@ class SplashScreenActivity : AppCompatActivity() {
         listener = FirebaseAuth.AuthStateListener {
             val user = it.currentUser
             if (user != null) {
-                Toast.makeText(this, "Welcome : " + user.uid, Toast.LENGTH_LONG).show()
+                checkUserFromFirebase()
             } else {
                 showLoginLayout()
             }
         }
+
+    }
+
+
+
+    private fun checkUserFromFirebase() {
+        driverInfoRef
+            .child(FirebaseAuth.getInstance().currentUser!!.uid)
+            .addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    if (snapshot.exists()) {
+                        val model = snapshot.getValue(DriverInfoModel::class.java)
+                        goToHomeActivity(model)
+                    } else {
+                        showRegisterLayout()
+                    }
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    Toast.makeText(this@SplashScreenActivity, error.message, Toast.LENGTH_LONG)
+                        .show()
+                }
+
+            })
+
+    }
+
+
+
+    private fun goToHomeActivity(model: DriverInfoModel?) {
+        Common.currentUser = model
+        startActivity(Intent(this,DriverHomeActivity::class.java))
+        finish()
+    }
+
+
+
+    private fun showRegisterLayout() {
+        val builder = AlertDialog.Builder(this, R.style.DialiogTheme)
+        val itemView = LayoutInflater.from(this).inflate(R.layout.layout_register, null)
+
+        val edt_first_name = itemView.findViewById<View>(R.id.edt_first_name) as TextInputEditText
+        val edt_last_name = itemView.findViewById<View>(R.id.edt_last_name) as TextInputEditText
+        val edt_phone_number =
+            itemView.findViewById<View>(R.id.edt_phone_number) as TextInputEditText
+
+        val btn_continue = itemView.findViewById<View>(R.id.btn_continue) as Button
+
+        //Set Data
+        if (FirebaseAuth.getInstance().currentUser!!.phoneNumber != null &&
+            !TextUtils.isDigitsOnly(FirebaseAuth.getInstance().currentUser!!.phoneNumber)
+        ) {
+            edt_phone_number.setText(FirebaseAuth.getInstance().currentUser!!.phoneNumber)
+        }
+
+        //View
+        builder.setView(itemView)
+        val dialog = builder.create()
+        dialog.show()
+
+        //Event
+        btn_continue.setOnClickListener {
+            if (TextUtils.isDigitsOnly(edt_first_name.text.toString())) {
+                Toast.makeText(this, "Please Enter First Name", Toast.LENGTH_LONG).show()
+                return@setOnClickListener
+            } else if (TextUtils.isDigitsOnly(edt_last_name.text.toString())) {
+                Toast.makeText(this, "Please Enter Last Name", Toast.LENGTH_LONG).show()
+                return@setOnClickListener
+            } else if (TextUtils.isDigitsOnly(edt_phone_number.text.toString())) {
+                Toast.makeText(this, "Please Enter Phone Number", Toast.LENGTH_LONG).show()
+                return@setOnClickListener
+            } else {
+                val model = DriverInfoModel()
+                model.firstName = edt_first_name.text.toString()
+                model.lastName = edt_last_name.text.toString()
+                model.phoneNumber = edt_phone_number.text.toString()
+                model.rating = 0.0
+
+                driverInfoRef.child(FirebaseAuth.getInstance().currentUser!!.uid)
+                    .setValue(model)
+                    .addOnFailureListener {
+                        Toast.makeText(this, "" + it.message, Toast.LENGTH_LONG).show()
+                        dialog.dismiss()
+                        progress_bar.visibility = View.GONE
+                    }
+                    .addOnSuccessListener {
+                        Toast.makeText(this, "Register Successfully!", Toast.LENGTH_LONG).show()
+                        dialog.dismiss()
+                        goToHomeActivity(model)
+                        progress_bar.visibility = View.GONE
+                    }
+
+            }
+        }
+
 
     }
 
@@ -90,11 +204,11 @@ class SplashScreenActivity : AppCompatActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == LOGIN_REQUEST_CODE) {
-            val response  = IdpResponse.fromResultIntent(data)
+            val response = IdpResponse.fromResultIntent(data)
             if (resultCode == Activity.RESULT_OK) {
                 val user = FirebaseAuth.getInstance().currentUser
-            }else {
-                Toast.makeText(this,""+response!!.error!!.message,Toast.LENGTH_LONG).show()
+            } else {
+                Toast.makeText(this, "" + response!!.error!!.message, Toast.LENGTH_LONG).show()
             }
         }
     }
