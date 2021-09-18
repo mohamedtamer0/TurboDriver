@@ -6,12 +6,17 @@
         <entry key="..\:/Users/Alwqar/AndroidStudioProjects/TurboDriver/app/src/main/res/drawable-v24/ic_launcher_foreground.xml" value="0.24444444444444444" />
         <entry key="..\:/Users/Alwqar/AndroidStudioProjects/TurboDriver/app/src/main/res/drawable/ic_baseline_phone_24.xml" value="0.3148148148148148" />
         <entry key="..\:/Users/Alwqar/AndroidStudioProjects/TurboDriver/app/src/main/res/drawable/ic_launcher_background.xml" value="0.24444444444444444" />
+        <entry key="..\:/Users/Alwqar/AndroidStudioProjects/TurboDriver/app/src/main/res/layout/activity_driver_home.xml" value="0.2912037037037037" />
         <entry key="..\:/Users/Alwqar/AndroidStudioProjects/TurboDriver/app/src/main/res/layout/activity_maps.xml" value="0.2912037037037037" />
         <entry key="..\:/Users/Alwqar/AndroidStudioProjects/TurboDriver/app/src/main/res/layout/activity_splash_screen.xml" value="0.275" />
+        <entry key="..\:/Users/Alwqar/AndroidStudioProjects/TurboDriver/app/src/main/res/layout/app_bar_driver_home.xml" value="0.2912037037037037" />
         <entry key="..\:/Users/Alwqar/AndroidStudioProjects/TurboDriver/app/src/main/res/layout/content_driver_home.xml" value="0.2912037037037037" />
+        <entry key="..\:/Users/Alwqar/AndroidStudioProjects/TurboDriver/app/src/main/res/layout/fragment_gallery.xml" value="0.2912037037037037" />
         <entry key="..\:/Users/Alwqar/AndroidStudioProjects/TurboDriver/app/src/main/res/layout/fragment_home.xml" value="0.2912037037037037" />
+        <entry key="..\:/Users/Alwqar/AndroidStudioProjects/TurboDriver/app/src/main/res/layout/fragment_slideshow.xml" value="0.2912037037037037" />
         <entry key="..\:/Users/Alwqar/AndroidStudioProjects/TurboDriver/app/src/main/res/layout/layout_register.xml" value="0.275" />
         <entry key="..\:/Users/Alwqar/AndroidStudioProjects/TurboDriver/app/src/main/res/layout/layout_sign_in.xml" value="0.25" />
+        <entry key="..\:/Users/Alwqar/AndroidStudioProjects/TurboDriver/app/src/main/res/layout/nav_header_driver_home.xml" value="0.2912037037037037" />
         <entry key="..\:/Users/Alwqar/AndroidStudioProjects/TurboDriver/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml" value="0.2853881278538813" />
       </map>
     </option>
