@@ -2,6 +2,7 @@ package com.example.turbodriver.ui.home
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.pm.PackageManager
 import android.content.res.Resources
 
 import android.os.Bundle
@@ -13,6 +14,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.RelativeLayout
 import android.widget.Toast
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
@@ -42,7 +45,7 @@ import com.karumi.dexter.listener.PermissionGrantedResponse
 import com.karumi.dexter.listener.PermissionRequest
 import com.karumi.dexter.listener.single.PermissionListener
 import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.FirebaseError
+
 
 import com.firebase.geofire.GeoLocation
 
@@ -63,8 +66,8 @@ class HomeFragment : Fragment(), OnMapReadyCallback {
 
     //Location
     private lateinit var locationRequest: LocationRequest
-    private lateinit var locationCallback: LocationCallback
-    private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
+    private  var locationCallback: LocationCallback?=null
+    private   var fusedLocationProviderClient: FusedLocationProviderClient?=null
 
 
     //Online System
@@ -90,12 +93,7 @@ class HomeFragment : Fragment(), OnMapReadyCallback {
 
 
 
-    override fun onDestroy() {
-        fusedLocationProviderClient.removeLocationUpdates(locationCallback)
-        geoFire.removeLocation(FirebaseAuth.getInstance().currentUser!!.uid)
-        onlineRef.removeEventListener(onlineValueEventListener)
-        super.onDestroy()
-    }
+
 
 
     override fun onResume() {
@@ -134,60 +132,67 @@ class HomeFragment : Fragment(), OnMapReadyCallback {
     }
 
 
-    @SuppressLint("MissingPermission")
     private fun init() {
 
-        onlineRef = FirebaseDatabase.getInstance().getReference(".info/connected")
-        driversLocationRef = FirebaseDatabase.getInstance().getReference(Common.DRIVERS_LOCATION_REFERENCE)
-        currentUserRef = FirebaseDatabase.getInstance().getReference(Common.DRIVERS_LOCATION_REFERENCE).child(
+        onlineRef= FirebaseDatabase.getInstance().getReference().child(".info/connected")
+        driversLocationRef= FirebaseDatabase.getInstance().getReference(Common.DRIVERS_LOCATION_REFERENCES)
+        currentUserRef= FirebaseDatabase.getInstance().getReference(Common.DRIVERS_LOCATION_REFERENCES).child(
             FirebaseAuth.getInstance().currentUser!!.uid
         )
-        geoFire = GeoFire(driversLocationRef)
+
+        geoFire= GeoFire(driversLocationRef)
+
         registerOnlineSystem()
 
+        locationRequest= LocationRequest()
+        locationRequest.apply {
+            this.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
+            this.setFastestInterval(3000)
+            this.interval= 5000
+            this.setSmallestDisplacement(10f)
+        }
 
-        locationRequest = LocationRequest()
-        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
-        locationRequest.setFastestInterval(3000)
-        locationRequest.interval = 5000
-        locationRequest.setSmallestDisplacement(10f)
-
-        locationCallback = object : LocationCallback() {
+        //take last location
+        locationCallback=object : LocationCallback() {
             override fun onLocationResult(locationResult: LocationResult?) {
                 super.onLocationResult(locationResult)
 
-                val newPos = LatLng(
-                    locationResult!!.lastLocation.latitude,
-                    locationResult.lastLocation.longitude
-                )
-                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(newPos, 18f))
+                //set the location on map
+                val newPos= LatLng(locationResult!!.lastLocation.latitude,locationResult.lastLocation.longitude)
+                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(newPos,18f))
 
-
-                //Update Location
-                geoFire.setLocation(
-                    FirebaseAuth.getInstance().currentUser!!.uid,
-                    GeoLocation(locationResult.lastLocation.latitude,locationResult.lastLocation.longitude)
-                ){ key:String?, error : DatabaseError? ->
-                    if (error != null) {
-                        Snackbar.make(mapFragment.requireView(),error.message,Snackbar.LENGTH_LONG).show()
-                    }else{
-                        Snackbar.make(mapFragment.requireView(), "You're Online!",Snackbar.LENGTH_LONG).show()
+                //set the location to the geoFire
+                //Update location
+                geoFire
+                    .setLocation(
+                        FirebaseAuth.getInstance().currentUser!!.uid,
+                        GeoLocation(
+                            locationResult.lastLocation.latitude,
+                            locationResult.lastLocation.longitude
+                        )
+                    ){key: String?, error: DatabaseError? ->
+                        if (error != null)
+                        {
+                            Snackbar.make(mapFragment.requireView(),error.message, Snackbar.LENGTH_LONG).show()
+                        }
+                        else
+                        {
+                            Snackbar.make(mapFragment.requireView(),"You 're online!", Snackbar.LENGTH_SHORT).show()
+                        }
                     }
-                }
-
-
-
             }
         }
 
+        fusedLocationProviderClient= LocationServices.getFusedLocationProviderClient(requireContext())
 
-        fusedLocationProviderClient =
-            LocationServices.getFusedLocationProviderClient(requireContext())
-        fusedLocationProviderClient.requestLocationUpdates(
-            locationRequest,
-            locationCallback,
-            Looper.myLooper()
-        )
+        if (ContextCompat.checkSelfPermission(requireContext(),Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED)
+        {
+            fusedLocationProviderClient!!.requestLocationUpdates(locationRequest,locationCallback, Looper.myLooper())
+        }
+        else
+        {
+            ActivityCompat.requestPermissions(requireActivity(), arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),12)
+        }
 
 
     }
@@ -211,7 +216,7 @@ class HomeFragment : Fragment(), OnMapReadyCallback {
                     mMap.isMyLocationEnabled = true
                     mMap.uiSettings.isMyLocationButtonEnabled = true
                     mMap.setOnMyLocationClickListener {
-                        fusedLocationProviderClient.lastLocation
+                        fusedLocationProviderClient!!.lastLocation
                             .addOnFailureListener {
                                 Toast.makeText(context!!, it.message, Toast.LENGTH_LONG).show()
 
@@ -230,7 +235,7 @@ class HomeFragment : Fragment(), OnMapReadyCallback {
 
 
                     //LayOut
-                    val locationButton = ( mapFragment.requireView()!!
+                    val locationButton = ( mapFragment.requireView()
                         .findViewById<View>("1".toInt())!!
                         .parent!! as View).findViewById<View>("2".toInt())
                     val params = locationButton.layoutParams as RelativeLayout.LayoutParams
@@ -274,4 +279,15 @@ class HomeFragment : Fragment(), OnMapReadyCallback {
 
 
     }
+
+
+    override fun onDestroy() {
+        fusedLocationProviderClient!!.removeLocationUpdates(locationCallback)
+        if (locationCallback == null) {
+            geoFire.removeLocation(FirebaseAuth.getInstance().currentUser!!.uid)
+        }
+        onlineRef.removeEventListener(onlineValueEventListener)
+        super.onDestroy()
+    }
+
 }

@@ -18,14 +18,14 @@ import com.firebase.ui.auth.IdpResponse
 import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
-import com.google.firebase.database.ktx.database
-import com.google.firebase.ktx.Firebase
+
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Completable
 import kotlinx.android.synthetic.main.activity_splash_screen.*
 import kotlinx.android.synthetic.main.layout_register.*
 import java.util.*
 import java.util.concurrent.TimeUnit
+
 
 class SplashScreenActivity : AppCompatActivity() {
 
@@ -70,7 +70,7 @@ class SplashScreenActivity : AppCompatActivity() {
 
     private fun init() {
         database = FirebaseDatabase.getInstance()
-        driverInfoRef = database.getReference(Common.DRIVER_INFO_REFERNCE)
+        driverInfoRef = database.getReference(Common.DRIVER_INFO_REFERENCE)
 
         provider = Arrays.asList(
             AuthUI.IdpConfig.PhoneBuilder().build(),
